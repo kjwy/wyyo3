@@ -1,36 +1,35 @@
 // gpt-advanced.js
-// 更精确的 ChatGPT 节点检测脚本
+// Sub-Store 专用 ChatGPT 节点检测脚本（更精确）
 
-module.exports = async (params) => {
+module.exports = async (params, context) => {
   const url = "https://chat.openai.com/cdn-cgi/trace";
   const timeout = params?.timeout || 2000;
 
   try {
-    const res = await $http.get({
-      url,
+    const res = await context.http.get(url, {
       timeout,
-      node: params?.node, // 让 Sub-Store 在节点下发请求
+      node: params?.node, // 使用 Sub-Store 的节点代理
     });
 
     if (!res || !res.body) {
-      return { status: "不可用", message: "无响应" };
+      return { status: "failed", message: "无响应" };
     }
 
     const text = res.body;
 
-    // 判断常见的被封锁/限制情况
+    // 判断被限制的情况
     if (
       text.includes("country=CN") ||
       text.includes("Access denied") ||
       text.includes("Not available")
     ) {
-      return { status: "不可用", message: "地区限制" };
+      return { status: "failed", message: "地区限制" };
     }
 
-    // 如果能正常获取 cf-trace 且没有限制字段
-    return { status: "可用", message: "正常" };
+    // 如果能获取 trace 并且没有限制
+    return { status: "success", message: "可用" };
 
   } catch (e) {
-    return { status: "不可用", message: "错误: " + e.message };
+    return { status: "failed", message: "错误: " + (e.message || e) };
   }
 };
